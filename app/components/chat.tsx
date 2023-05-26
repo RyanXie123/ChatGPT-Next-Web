@@ -733,8 +733,8 @@ export function Chat() {
               onChange={(e) => {
                 const model = ModalConfigValidator.model(e.currentTarget.value);
                 console.log(model);
-                config.update((config) => (config.model = model));
-                console.log(config.model);
+                // config.update((config) => (config.model = model));
+                // console.log(config.model);
                 setCurrentModel(model);
                 // props.updateConfig(
                 //   (config) =>

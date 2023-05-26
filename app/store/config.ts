@@ -30,7 +30,7 @@ export const DEFAULT_CONFIG = {
   dontShowMaskSplashScreen: false, // dont show splash screen when create chat
 
   modelConfig: {
-    model: "gpt-3.5-turbo" as ModelType,
+    model: "gpt-3.5" as ModelType,
     temperature: 0.5,
     max_tokens: 2000,
     presence_penalty: 0,
@@ -80,11 +80,11 @@ export const ALL_MODELS = [
   //   available: true,
   // },
   // {
-  //   name: "gpt-3.5-turbo",
+  //   name: "gpt-3.5",
   //   available: true,
   // },
   // {
-  //   name: "gpt-3.5-turbo-0301",
+  //   name: "gpt-3.5-0301",
   //   available: true,
   // },
   // {
@@ -127,7 +127,7 @@ export function limitNumber(
 export function limitModel(name: string) {
   return ALL_MODELS.some((m) => m.name === name && m.available)
     ? name
-    : ALL_MODELS[4].name;
+    : ALL_MODELS[0].name;
 }
 
 export const ModalConfigValidator = {
