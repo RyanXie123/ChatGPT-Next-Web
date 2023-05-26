@@ -1,5 +1,10 @@
 import { REQUEST_TIMEOUT_MS } from "@/app/constant";
-import { useAccessStore, useAppConfig, useChatStore } from "@/app/store";
+import {
+  ALL_MODELS,
+  useAccessStore,
+  useAppConfig,
+  useChatStore,
+} from "@/app/store";
 
 import { ChatOptions, getHeaders, LLMApi, LLMUsage } from "../api";
 import Locale from "../../locales";
@@ -39,7 +44,10 @@ export class ChatGPTApi implements LLMApi {
         model: options.config.model,
       },
     };
-
+    console.log("modelconfig " + options.config.model);
+    console.log(
+      "modelconfig " + JSON.stringify(useAppConfig.getState().modelConfig),
+    );
     const requestPayload = {
       messages,
       stream: options.config.stream,
@@ -59,11 +67,19 @@ export class ChatGPTApi implements LLMApi {
       const userMessages = messages.filter((item) => {
         return item.role === "user";
       });
+      // const config = useAppConfig();
+      let modelValue = "beaver";
+      console.log("request model:" + options.config.model);
 
+      ALL_MODELS.forEach((model) => {
+        if (options.config.model === model.name) {
+          modelValue = model.value;
+        }
+      });
       const new_req = JSON.stringify({
         messages: [userMessages[userMessages.length - 1].content],
-        // model:"chinchilla",
-        model: "beaver",
+        model: "chinchilla",
+        // model: modelValue,
       });
       console.log("[Request] ", new_req);
       const chatPayload = {

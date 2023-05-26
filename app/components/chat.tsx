@@ -32,6 +32,8 @@ import {
   Theme,
   useAppConfig,
   DEFAULT_TOPIC,
+  ALL_MODELS,
+  ModalConfigValidator,
 } from "../store";
 
 import {
@@ -52,7 +54,7 @@ import { IconButton } from "./button";
 import styles from "./home.module.scss";
 import chatStyle from "./chat.module.scss";
 
-import { ListItem, Modal } from "./ui-lib";
+import { ListItem, Modal, Select } from "./ui-lib";
 import { useLocation, useNavigate } from "react-router-dom";
 import { LAST_INPUT_KEY, Path, REQUEST_TIMEOUT_MS } from "../constant";
 import { Avatar } from "./emoji";
@@ -418,6 +420,7 @@ export function Chat() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [userInput, setUserInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [currentModel, setCurrentModel] = useState(config.model);
   const { submitKey, shouldSubmit } = useSubmitHandler();
   const { scrollRef, setAutoScroll, scrollToBottom } = useScrollToBottom();
   const [hitBottom, setHitBottom] = useState(true);
@@ -488,7 +491,9 @@ export function Chat() {
   const doSubmit = (userInput: string) => {
     if (userInput.trim() === "") return;
     setIsLoading(true);
-    chatStore.onUserInput(userInput).then(() => setIsLoading(false));
+    chatStore
+      .onUserInput(userInput, currentModel)
+      .then(() => setIsLoading(false));
     localStorage.setItem(LAST_INPUT_KEY, userInput);
     setUserInput("");
     setPromptHints([]);
@@ -590,7 +595,9 @@ export function Chat() {
     setIsLoading(true);
     const content = session.messages[userIndex].content;
     deleteMessage(userIndex);
-    chatStore.onUserInput(content).then(() => setIsLoading(false));
+    chatStore
+      .onUserInput(content, currentModel)
+      .then(() => setIsLoading(false));
     inputRef.current?.focus();
   };
 
@@ -720,6 +727,30 @@ export function Chat() {
               />
             </div>
           )}
+          <div className="window-action-button">
+            <Select
+              value={currentModel}
+              onChange={(e) => {
+                const model = ModalConfigValidator.model(e.currentTarget.value);
+                console.log(model);
+                config.update((config) => (config.model = model));
+                console.log(config.model);
+                setCurrentModel(model);
+                // props.updateConfig(
+                //   (config) =>
+                // (config.model = ModalConfigValidator.model(
+                //   e.currentTarget.value,
+                // )),
+                // );
+              }}
+            >
+              {ALL_MODELS.map((v) => (
+                <option value={v.name} key={v.name} disabled={!v.available}>
+                  {v.name}
+                </option>
+              ))}
+            </Select>
+          </div>
         </div>
 
         <PromptToast

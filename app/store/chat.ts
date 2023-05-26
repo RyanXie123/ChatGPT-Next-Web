@@ -232,7 +232,7 @@ export const useChatStore = create<ChatStore>()(
         get().summarizeSession();
       },
 
-      async onUserInput(content) {
+      async onUserInput(content, model = "") {
         const session = get().currentSession();
         const modelConfig = session.mask.modelConfig;
 
@@ -280,7 +280,7 @@ export const useChatStore = create<ChatStore>()(
         console.log("[User Input] ", sendMessages);
         api.llm.chat({
           messages: sendMessages,
-          config: { ...modelConfig, stream: true },
+          config: { ...modelConfig, stream: true, model: model },
           onUpdate(message) {
             botMessage.streaming = true;
             if (message) {
