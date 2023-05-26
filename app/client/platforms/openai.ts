@@ -50,17 +50,31 @@ export class ChatGPTApi implements LLMApi {
 
     console.log("[Request] openai payload: ", requestPayload);
 
-    const shouldStream = !!options.config.stream;
+    let shouldStream = !!options.config.stream;
     const controller = new AbortController();
     options.onController?.(controller);
-
+    shouldStream = true;
     try {
       const chatPath = this.path(this.ChatPath);
+      const userMessages = messages.filter((item) => {
+        return item.role === "user";
+      });
+
+      const new_req = JSON.stringify({
+        messages: [userMessages[userMessages.length - 1].content],
+        // model:"chinchilla",
+        model: "beaver",
+      });
+      console.log("[Request] ", new_req);
       const chatPayload = {
         method: "POST",
-        body: JSON.stringify(requestPayload),
+        body: new_req,
         signal: controller.signal,
-        headers: getHeaders(),
+        headers: {
+          "Content-Type": "application/json",
+          ...getHeaders(),
+          Accept: "*/*",
+        },
       };
 
       // make a fetch request
@@ -77,12 +91,13 @@ export class ChatGPTApi implements LLMApi {
           if (!finished) {
             options.onFinish(responseText);
             finished = true;
+            controller.abort();
           }
         };
 
         controller.signal.onabort = finish;
 
-        fetchEventSource(chatPath, {
+        fetchEventSource("http://usa2.xieru.site:8000/chat_completion/", {
           ...chatPayload,
           async onopen(res) {
             clearTimeout(requestTimeoutId);
@@ -92,37 +107,65 @@ export class ChatGPTApi implements LLMApi {
               contentType,
             );
 
-            if (contentType?.startsWith("text/plain")) {
-              responseText = await res.clone().text();
-              return finish();
-            }
+            // if (contentType?.startsWith("text/plain")) {
+            //   responseText = await res.clone().text();
+            //   return finish();
+            // }
+            if (res.ok && res.body) {
+              const reader = res.body?.getReader();
+              const decoder = new TextDecoder();
 
-            if (
-              !res.ok ||
-              !res.headers
-                .get("content-type")
-                ?.startsWith(EventStreamContentType) ||
-              res.status !== 200
-            ) {
-              const responseTexts = [responseText];
-              let extraInfo = await res.clone().text();
-              try {
-                const resJson = await res.clone().json();
-                extraInfo = prettyObject(resJson);
-              } catch {}
+              options?.onController?.(controller);
 
-              if (res.status === 401) {
-                responseTexts.push(Locale.Error.Unauthorized);
+              while (true) {
+                const resTimeoutId = setTimeout(() => finish(), 60000);
+                const content = await reader?.read();
+                clearTimeout(resTimeoutId);
+
+                if (!content || !content.value) {
+                  break;
+                }
+
+                const text = decoder.decode(content.value, { stream: true });
+                responseText += text;
+
+                const done = content.done;
+                options.onUpdate?.(responseText, text);
+
+                if (done) {
+                  break;
+                }
               }
 
-              if (extraInfo) {
-                responseTexts.push(extraInfo);
-              }
-
-              responseText = responseTexts.join("\n\n");
-
-              return finish();
+              finish();
             }
+
+            // if (
+            //   !res.ok ||
+            //   // !res.headers
+            //   //   .get("content-type")
+            //   //   ?.startsWith(EventStreamContentType) ||
+            //   res.status !== 200
+            // ) {
+            //   const responseTexts = [responseText];
+            //   let extraInfo = await res.clone().text();
+            //   try {
+            //     const resJson = await res.clone().json();
+            //     extraInfo = prettyObject(resJson);
+            //   } catch {}
+
+            //   if (res.status === 401) {
+            //     responseTexts.push(Locale.Error.Unauthorized);
+            //   }
+
+            //   if (extraInfo) {
+            //     responseTexts.push(extraInfo);
+            //   }
+
+            //   responseText = responseTexts.join("\n\n");
+
+            //   return finish();
+            // }
           },
           onmessage(msg) {
             if (msg.data === "[DONE]" || finished) {
