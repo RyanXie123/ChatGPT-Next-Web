@@ -78,7 +78,7 @@ export class ChatGPTApi implements LLMApi {
       });
       const new_req = JSON.stringify({
         messages: [userMessages[userMessages.length - 1].content],
-        model: "chinchilla",
+        model: modelValue,
         // model: modelValue,
       });
       console.log("[Request] ", new_req);
